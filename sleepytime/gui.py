@@ -15,6 +15,8 @@ import time
 import PySimpleGUI as sg
 from psgtray import SystemTray
 
+from .__version__ import __version__
+
 DELAY_TEXT = "Delay"
 HIBERNATE_TEXT = "Hibernate"
 DELAY_TIMEDELTA = datetime.timedelta(hours=1)
@@ -71,7 +73,9 @@ def run(countdown: int = 300) -> None:
     )
 
     sys_tray = SystemTray(
-        menu=["", ["Exit"]], tooltip="SleepTime is running...", window=window
+        menu=["", ["Exit"]],
+        tooltip=f"SleepTime {__version__} is running...",
+        window=window,
     )
 
     death_time = time.time() + countdown
