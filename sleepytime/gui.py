@@ -75,26 +75,28 @@ def run(countdown: int = 300) -> None:
     )
 
     death_time = time.time() + countdown
+    unhide_time = None
 
     try:
         while time.time() < death_time:
             event, values = window.read(timeout=500)
-            print(event, values)
+            # print(event, values)
 
             window["countdown"].update(
                 countdown_to_str(int(max(0, death_time - time.time())))
             )
 
-            if event == DELAY_TEXT:
-                window.hide()
-                sleep_till = datetime.datetime.now() + DELAY_TIMEDELTA
-                sys_tray.set_tooltip(f"Sleeping until: {sleep_till}")
-
-                time.sleep(DELAY_TIMEDELTA.total_seconds())
-
+            if unhide_time and unhide_time < time.time():
+                # we unhide, reset unhide time and reset death time
                 window["countdown"].update(countdown_to_str(countdown))
                 death_time = time.time() + countdown
                 window.un_hide()
+                unhide_time = None
+
+            if event == DELAY_TEXT:
+                window.hide()
+                unhide_time = time.time() + DELAY_TIMEDELTA.total_seconds()
+                sys_tray.set_tooltip(f"Sleeping until: {unhide_time}")
 
             elif event == HIBERNATE_TEXT:
                 hibernate_and_exit()
