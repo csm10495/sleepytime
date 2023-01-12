@@ -101,6 +101,7 @@ def run(countdown: int = 300) -> None:
                 window.hide()
                 unhide_time = time.time() + DELAY_TIMEDELTA.total_seconds()
                 sys_tray.set_tooltip(f"Sleeping until: {unhide_time}")
+                death_time = float("inf")
 
             elif event == HIBERNATE_TEXT:
                 hibernate_and_exit()
