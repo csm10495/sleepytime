@@ -16,6 +16,7 @@ import PySimpleGUI as sg
 from psgtray import SystemTray
 
 from .__version__ import __version__
+from .resume_watcher import ResumeWatcher
 
 DELAY_TEXT = "Delay"
 HIBERNATE_TEXT = "Hibernate"
@@ -80,6 +81,7 @@ def run(countdown: int = 300) -> None:
 
     death_time = time.time() + countdown
     unhide_time = None
+    resume_watcher = ResumeWatcher()
 
     try:
         while time.time() < death_time:
@@ -107,8 +109,8 @@ def run(countdown: int = 300) -> None:
                 hibernate_and_exit()
             elif (
                 event in (sg.WIN_CLOSED, "Exit")
-                or event == SystemTray.DEFAULT_KEY
-                and values[sys_tray.key] == "Exit"
+                or (event == SystemTray.DEFAULT_KEY and values[sys_tray.key] == "Exit")
+                or resume_watcher.is_resumed()
             ):
                 break
             elif event == sg.EVENT_TIMEOUT:
