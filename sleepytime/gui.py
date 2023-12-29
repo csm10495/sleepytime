@@ -16,6 +16,7 @@ import PySimpleGUI as sg
 from psgtray import SystemTray
 
 from .__version__ import __version__
+from .mouse_watcher import is_moving
 from .resume_watcher import ResumeWatcher
 
 DELAY_TEXT = "Delay"
@@ -79,9 +80,13 @@ def run(countdown: int = 300) -> None:
         window=window,
     )
 
+    resume_watcher = ResumeWatcher()
+
+    while is_moving():
+        sys_tray.set_tooltip("Mouse is moving, waiting for it to stop...")
+
     death_time = time.time() + countdown
     unhide_time = None
-    resume_watcher = ResumeWatcher()
 
     try:
         while time.time() < death_time:

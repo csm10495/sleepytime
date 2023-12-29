@@ -28,6 +28,6 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     include_package_data=True,
-    install_requires=["PySimpleGUI", "psgtray", "pywin32", "tendo"],
+    install_requires=["PySimpleGUI", "psgtray", "pywin32", "tendo", "pyautogui"],
     entry_points={},
 )
