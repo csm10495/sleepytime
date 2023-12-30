@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime, timedelta
+from pprint import pformat
 from threading import Event, Thread
 
 import PySimpleGUI as sg
@@ -26,6 +27,7 @@ HIDE_TEXT = "Hide"
 EXIT_TEXT = "Exit"
 RESET_HIBERNATE_TIMER = "Reset Hibernate Timer"
 FORCE_PASS_MOVEMENT_TEST = "Force Pass Movement Test"
+DUMP_INFO_TEXT = "Dump Debug Info"
 HIBERNATE_TEXT = "Hibernate"
 NO_HIBERNATE_TEXT = "N/A"
 DELAY_TIMEDELTA = timedelta(hours=1)
@@ -68,6 +70,7 @@ class SleepyTimeSysTray:
                         HIDE_TEXT,
                         RESET_HIBERNATE_TIMER,
                         FORCE_PASS_MOVEMENT_TEST,
+                        DUMP_INFO_TEXT,
                     ],
                 ],
             ],
@@ -109,6 +112,29 @@ class SleepyTimeSysTray:
                 == FORCE_PASS_MOVEMENT_TEST
             ):
                 self.sleepy_time_window.give_up_is_moving_event.set()
+            elif (
+                self.sleepy_time_window.last_event_values[self.sys_tray.key]
+                == DUMP_INFO_TEXT
+            ):
+                sys_tray = vars(self)
+                window = vars(self.sleepy_time_window)
+
+                txt = (
+                    "SleepyTimeSysTray: \n"
+                    + pformat(sys_tray)
+                    + "\n\n"
+                    + "SleepyTimeWindow: \n"
+                    + pformat(window)
+                )
+
+                sg.popup(
+                    txt,
+                    title="Debug Info",
+                    non_blocking=True,
+                    grab_anywhere=True,
+                    keep_on_top=True,
+                    line_width=120,
+                )
 
         if self.sleepy_time_window.passed_no_movement_test:
             if self.sleepy_time_window.hibernate_timer_start_time is not None:
