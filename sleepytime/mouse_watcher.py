@@ -2,6 +2,7 @@
 Home to functionality related to watching the mouse.
 """
 from datetime import timedelta
+from threading import Event
 from time import sleep, time
 
 from pyautogui import position
@@ -24,3 +25,15 @@ def is_moving(max_wait: timedelta = timedelta(minutes=5)) -> bool:
         sleep(1)
 
     return len(last_positions) > 1
+
+
+def wait_for_no_movement(
+    give_up_event: Event, min_time_of_no_movement: timedelta = timedelta(minutes=5)
+) -> None:
+    """
+    Waits for the mouse to stop moving. Will wait for a period of min_time_of_no_movement before returning.
+    """
+    while is_moving(min_time_of_no_movement):
+        sleep(1)
+        if give_up_event.is_set():
+            break

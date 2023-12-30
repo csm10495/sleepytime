@@ -1,6 +1,6 @@
 from tendo.singleton import SingleInstance, SingleInstanceException
 
-from sleepytime.gui import run
+from sleepytime.window import SleepyTimeWindow
 
 if __name__ == "__main__":
     # you must give a var for SingleInstance to live in... otherwise
@@ -12,4 +12,4 @@ if __name__ == "__main__":
             "Another instance of sleepytime is already running, quitting."
         )
 
-    run()
+    SleepyTimeWindow().run()
