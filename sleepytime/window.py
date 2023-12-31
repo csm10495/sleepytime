@@ -6,6 +6,7 @@ If you want to cancel the process after that you can right click the system tray
 and hit exit
 """
 
+import logging
 import os
 import subprocess
 import sys
@@ -33,6 +34,8 @@ NO_HIBERNATE_TEXT = "N/A"
 DELAY_TIMEDELTA = timedelta(hours=1)
 COUNTDOWN_TIMEDELTA = timedelta(minutes=5)
 
+log = logging.getLogger(__name__)
+
 if os.name != "nt":
     raise NotImplementedError(
         "This program only works on Windows.. feel free to PR hibernate calls for other OS's!"
@@ -45,6 +48,8 @@ def hibernate_and_exit() -> None:
 
     Funny enough the exit may happen right after the system resumes.
     """
+    log.info("Calling shutdown /h to hibernate!")
+
     subprocess.call("shutdown /h", shell=True)
 
     sys.exit(0)
@@ -79,43 +84,64 @@ class SleepyTimeSysTray:
         )
 
         self.sleepy_time_window = sleepy_time_window
+        self._tooltip_text = ""
+
+    def set_tooltip(self, txt: str) -> None:
+        """
+        A wrapper around SystemTray.set_tooltip() that only sets the tooltip if it's different than the current one.
+
+        Also logs the change.
+        """
+        if self._tooltip_text != txt:
+            self._tooltip_text = txt
+
+            log.debug(f"Updating tooltip text to: {txt}")
+            self.sys_tray.set_tooltip(txt)
 
     def update(self) -> None:
         """
         Updates the SleepyTimeSysTray. Called by update in SleepyTimeWindow
         """
+        log.debug("Starting update() for SleepyTimeSysTray!")
+
         # We have access to the sleepy_time_window's last event and values
         if self.sleepy_time_window.last_event == SystemTray.DEFAULT_KEY:
             if (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == SHOW_TEXT
             ):
+                log.info("Calling show() on the sleepy_time_window.")
                 self.sleepy_time_window.show()
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == HIDE_TEXT
             ):
                 self.sleepy_time_window.hide()
+                log.info("Calling hide() on the sleepy_time_window.")
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == EXIT_TEXT
             ):
+                log.info("Calling exit based off the user's request.")
                 sys.exit(0)
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == RESET_HIBERNATE_TIMER
             ):
+                log.info("Resetting the hibernate timer to now.")
                 # If we set this to None instead, we wouldn't show and start a new one.
                 self.sleepy_time_window.hibernate_timer_start_time = datetime.now()
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == FORCE_PASS_MOVEMENT_TEST
             ):
+                log.info("Forcing the no movement test to pass.")
                 self.sleepy_time_window.give_up_is_moving_event.set()
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == DUMP_INFO_TEXT
             ):
+                log.info("Dumping debug info to a popup.")
                 sys_tray = vars(self)
                 window = vars(self.sleepy_time_window)
 
@@ -126,6 +152,8 @@ class SleepyTimeSysTray:
                     + "SleepyTimeWindow: \n"
                     + pformat(window)
                 )
+
+                log.debug(f"Debug info: {txt}")
 
                 sg.popup(
                     txt,
@@ -138,13 +166,13 @@ class SleepyTimeSysTray:
 
         if self.sleepy_time_window.passed_no_movement_test:
             if self.sleepy_time_window.hibernate_timer_start_time is not None:
-                self.sys_tray.set_tooltip(
+                self.set_tooltip(
                     f"Sleeping until: {self.sleepy_time_window.hibernate_timer_start_time}"
                 )
             else:
-                self.sys_tray.set_tooltip(f"SleepTime {__version__} is running...")
+                self.set_tooltip(f"SleepTime {__version__} is running...")
         else:
-            self.sys_tray.set_tooltip("Waiting for no mouse movement...")
+            self.set_tooltip("Waiting for no mouse movement...")
 
 
 class SleepyTimeWindow:
@@ -212,6 +240,7 @@ class SleepyTimeWindow:
         """
         Hides the window
         """
+        log.info("Hiding the window.")
         self.window.alpha_channel = 0
         self.window.hide()
 
@@ -219,6 +248,7 @@ class SleepyTimeWindow:
         """
         Shows the window
         """
+        log.info("Showing the window.")
         self.window.alpha_channel = 0.8
         self.window.un_hide()
 
@@ -226,6 +256,7 @@ class SleepyTimeWindow:
         """
         Starts the hibernation timer. Also resets the hibernate timer start time so they don't overlap.
         """
+        log.info("Starting the hibernation timer.")
         self.hibernate_time = datetime.now() + COUNTDOWN_TIMEDELTA
         self.hibernate_timer_start_time = None
 
@@ -233,11 +264,13 @@ class SleepyTimeWindow:
         """
         Runs the SleepyTimeWindow. This is the main loop.
         """
+        log.info("Running the window.")
         try:
             while True:
                 self.update()
                 self.sleepy_time_sys_tray.update()
         finally:
+            log.info("Closing the window and sys tray.")
             self.window.close()
             self.sleepy_time_sys_tray.sys_tray.close()
 
@@ -247,11 +280,14 @@ class SleepyTimeWindow:
 
         Will call all functions on this object that end with _if_needed().
         """
+        log.debug("Starting update() for SleepyTimeWindow!")
         self.last_event, self.last_event_values = self.window.read(timeout=200)
+        log.debug(f"Got event: {self.last_event} with values: {self.last_event_values}")
 
         for name in dir(self):
             if name.endswith("_if_needed"):
                 func = getattr(self, name)
+                log.debug(f"Calling {name}()")
                 func()
 
     def _update_countdown_if_needed(self) -> None:
@@ -259,10 +295,12 @@ class SleepyTimeWindow:
         Based off the hibernate_time, updates the countdown text.
         """
         if self.hibernate_time is None:
+            log.debug("Hibernate time is None. Updating countdown text to N/A.")
             self.window[COUNTDOWN_KEY].update(NO_HIBERNATE_TEXT)
         else:
             span = int(round((self.hibernate_time - datetime.now()).total_seconds()))
             txt = str(max(0, span)) + "s"
+            log.debug(f"Hibernate time is set. Updating countdown text to {txt}")
             self.window[COUNTDOWN_KEY].update(txt)
 
     def _hibernate_now_if_needed(self) -> None:
@@ -272,6 +310,8 @@ class SleepyTimeWindow:
         if (
             self.hibernate_time is not None and datetime.now() > self.hibernate_time
         ) or self.last_event == HIBERNATE_TEXT:
+            log.info("Calling hibernate_and_exit().")
+
             hibernate_and_exit()
 
     def _hide_and_delay_if_needed(self) -> None:
@@ -279,9 +319,12 @@ class SleepyTimeWindow:
         If the delay button has been pushed, hide the window and set the hibernation timer start time.
         """
         if self.last_event == DELAY_TEXT:
+            log.info(
+                "Delay event was given. Hiding and reseting the hibernate_time and setting the hibernate_timer_start_time."
+            )
+
             self.hide()
             self.hibernate_time = None
-
             self.hibernate_timer_start_time = datetime.now() + DELAY_TIMEDELTA
 
     def _start_hibernate_timer_if_needed(self) -> None:
@@ -292,6 +335,8 @@ class SleepyTimeWindow:
             self.hibernate_timer_start_time is not None
             and datetime.now() > self.hibernate_timer_start_time
         ):
+            log.info("Starting the hibernation timer and showing the ui.")
+
             self.start_hibernation_timer()
             self.show()
 
@@ -300,6 +345,8 @@ class SleepyTimeWindow:
         Exits the program if we detected a system resume.
         """
         if self.resume_watcher.is_resumed():
+            log.info("System has resumed. Exiting.")
+
             sys.exit(0)
 
     def _handle_background_waiting_for_no_movement_if_needed(self) -> None:
@@ -311,5 +358,9 @@ class SleepyTimeWindow:
             not self._is_moving_thread.is_alive()
             and self.passed_no_movement_test is False
         ):
+            log.info(
+                "No movement test passed (the mouse didn't move for the given expected time). Setting the hibernate_timer_start_time."
+            )
+
             self.passed_no_movement_test = True
             self.hibernate_timer_start_time = datetime.now()
