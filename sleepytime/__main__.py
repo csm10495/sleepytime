@@ -9,7 +9,9 @@ from tendo.singleton import SingleInstance, SingleInstanceException
 from sleepytime.__version__ import __version__
 from sleepytime.window import SleepyTimeWindow
 
-FORMATTER = "%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
+FORMATTER = (
+    "%(asctime)s - [%(process)d] - %(name)s:%(lineno)d - %(levelname)s - %(message)s"
+)
 
 base_logger = logging.getLogger("sleepytime")
 base_logger.setLevel(os.environ.get("SLEEPYTIME_LOG_LEVEL", "INFO"))
@@ -41,5 +43,5 @@ if __name__ == "__main__":
             "Another instance of sleepytime is already running, quitting."
         )
 
-    base_logger.info(f"Starting sleepytime {__version__}")
+    base_logger.info(f"Starting sleepytime {__version__}.")
     SleepyTimeWindow().run()
