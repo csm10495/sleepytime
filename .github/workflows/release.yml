@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - run: pip install pyinstaller===5.6.2
+      - run: pip install pyinstaller==6.4.0
         working-directory: ${{ github.workspace }}
       - run: pip install .
         working-directory: ${{ github.workspace }}
