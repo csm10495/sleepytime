@@ -29,7 +29,7 @@ setup(
     ],
     include_package_data=True,
     install_requires=[
-        "PySimpleGUI-4-foss @ git+https://github.com/csm10495/PySimpleGUI-4-foss@foss", # original is no longer opensource :/
+        "PySimpleGUI-4-foss @ git+https://github.com/csm10495/PySimpleGUI-4-foss@unicode-decode-error-workaround", # original is no longer opensource :/
         "psgtray @ git+https://github.com/csm10495/psgtray@main", # not sure i trust pysimplegui to not drop opensource :/
         "pywin32",
         "tendo",
