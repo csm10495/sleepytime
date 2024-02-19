@@ -30,7 +30,7 @@ setup(
     include_package_data=True,
     install_requires=[
         "PySimpleGUI-4-foss", # original is no longer opensource :/
-        "psgtray", # not sure i trust pysimplegui to not drop opensource :/
+        "psgtray-foss", # not sure i trust pysimplegui to not drop opensource :/
         "pywin32",
         "tendo",
         "pyautogui",
