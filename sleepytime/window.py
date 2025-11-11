@@ -9,7 +9,6 @@ and hit exit
 import logging
 import os
 import subprocess
-import sys
 from datetime import datetime, timedelta
 from pprint import pformat
 from threading import Event, Thread
@@ -18,6 +17,8 @@ import PySimpleGUI as sg
 from psgtray import SystemTray
 
 from .__version__ import __version__
+from .exceptions import SleepyTimeExit
+from .log import LATEST_LOG_FILE, setup_logging
 from .mouse_watcher import wait_for_no_movement
 from .resume_watcher import ResumeWatcher
 
@@ -52,7 +53,7 @@ def hibernate_and_exit() -> None:
 
     subprocess.call("shutdown /h", shell=True)
 
-    sys.exit(0)
+    raise SleepyTimeExit(0)
 
 
 class SleepyTimeSysTray:
@@ -123,7 +124,7 @@ class SleepyTimeSysTray:
                 == EXIT_TEXT
             ):
                 log.info("Calling exit based off the user's request.")
-                sys.exit(0)
+                raise SleepyTimeExit(0)
             elif (
                 self.sleepy_time_window.last_event_values[self.sys_tray.key]
                 == RESET_HIBERNATE_TIMER
@@ -151,17 +152,43 @@ class SleepyTimeSysTray:
                     + "\n\n"
                     + "SleepyTimeWindow: \n"
                     + pformat(window)
+                    + "\n\n"
+                    + "Logging Base Level: "
+                    + logging.getLevelName(setup_logging().level)
+                    + "\n\n"
+                    + "Log File: "
+                    + str(LATEST_LOG_FILE)
+                    + "\n\n"
+                    + "Last 1000 Lines of Log File: \n"
+                    + "".join(
+                        LATEST_LOG_FILE.read_text(errors="ignore").splitlines(
+                            keepends=True
+                        )[-1000:]
+                    )
                 )
 
                 log.debug(f"Debug info: {txt}")
 
-                sg.popup(
-                    txt,
-                    title="Debug Info",
-                    non_blocking=True,
+                # Create a custom window with read-only multiline text
+                layout = [
+                    [
+                        sg.Multiline(
+                            txt,
+                            size=(100, 30),
+                            disabled=True,
+                            autoscroll=True,
+                            expand_x=True,
+                            expand_y=True,
+                        )
+                    ],
+                ]
+                sg.Window(
+                    "Debug Info",
+                    layout,
                     grab_anywhere=True,
                     keep_on_top=True,
-                    line_width=120,
+                    finalize=True,
+                    resizable=True,
                 )
 
         if self.sleepy_time_window.passed_no_movement_test:
@@ -269,6 +296,13 @@ class SleepyTimeWindow:
             while True:
                 self.update()
                 self.sleepy_time_sys_tray.update()
+        except SleepyTimeExit:
+            # Flush logs and exit
+            logging.shutdown()
+            raise
+        except Exception:
+            log.exception("An unexpected error occurred in the SleepyTimeWindow.")
+            raise
         finally:
             log.info("Closing the window and sys tray.")
             self.window.close()
@@ -347,7 +381,7 @@ class SleepyTimeWindow:
         if self.resume_watcher.is_resumed():
             log.info("System has resumed. Exiting.")
 
-            sys.exit(0)
+            raise SleepyTimeExit(0)
 
     def _handle_background_waiting_for_no_movement_if_needed(self) -> None:
         """
